@@ -1,8 +1,20 @@
+using Microsoft.Extensions.Options;
+using wmserp.api.Models;
+using Microsoft.EntityFrameworkCore;
+using Npgsql.EntityFrameworkCore.PostgreSQL;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+//o builder.Services serve para gerar a doc da api, o swagger. ele permite fazer testes nos endpoints direto pelo navegador
 builder.Services.AddOpenApi();
+
+//conf do banco de dados
+//tudo o que o sistema precisa, devemos colocar dentro do buider.services logo na inicialização
+//esse trecho vai ate o appsettings.json e procura pela chave DefaultConnection e le o texto dela
+builder.Services.AddDbContext<SistemaWmsComErpContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 
 var app = builder.Build();
 

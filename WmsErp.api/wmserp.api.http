@@ -1,0 +1,6 @@
+@wmserp.api_HostAddress = http://localhost:5239
+
+GET {{wmserp.api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

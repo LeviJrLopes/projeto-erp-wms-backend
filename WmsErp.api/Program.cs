@@ -1,30 +1,45 @@
 using Microsoft.Extensions.Options;
 using wmserp.api.Models;
 using Microsoft.EntityFrameworkCore;
-using Npgsql.EntityFrameworkCore.PostgreSQL;
+using Scalar.AspNetCore; // Importante para o Scalar funciona
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-//o builder.Services serve para gerar a doc da api, o swagger. ele permite fazer testes nos endpoints direto pelo navegador
+// --- 1. CONFIGURAÇÃO DOS SERVIÇOS ---
+
+// Ativa o gerador de documentação oficial do .NET 9
 builder.Services.AddOpenApi();
 
-//conf do banco de dados
-//tudo o que o sistema precisa, devemos colocar dentro do buider.services logo na inicialização
-//esse trecho vai ate o appsettings.json e procura pela chave DefaultConnection e le o texto dela
-builder.Services.AddDbContext<SistemaWmsComErpContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+// Configuração do Banco de Dados PostgreSQL
+builder.Services.AddDbContext<SistemaWmsComErpContext>(options => 
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Impede loops infinitos ao ler dados com relacionamentos
+builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
+{
+    options.SerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+});
 
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// --- 2. CONFIGURAÇÃO DO PIPELINE (MIDDLEWARES) ---
+
 if (app.Environment.IsDevelopment())
 {
+    // Ativa a geração do arquivo contendo os dados da API
     app.MapOpenApi();
+    
+    // 1ª Opção Visual: Interface Moderna do Scalar
+    app.MapScalarApiReference(); 
+
+    // 2ª Opção Visual: Interface Clássica do Swagger (Gerada a partir do OpenAPI do .NET 9)
+    
 }
 
 app.UseHttpsRedirection();
+
+// --- 3. ROTAS DA API (ENDPOINTS) ---
 
 var summaries = new[]
 {
@@ -33,7 +48,7 @@ var summaries = new[]
 
 app.MapGet("/weatherforecast", () =>
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
+    var forecast = Enumerable.Range(1, 5).Select(index =>
         new WeatherForecast
         (
             DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
@@ -46,23 +61,21 @@ app.MapGet("/weatherforecast", () =>
 .WithName("GetWeatherForecast");
 
 
-
-//o codigo abaixo cria uma rota api para testar a insercao de dados na tabela
-
+// Rota para cadastrar novos clientes (Sua Minimal API)
 app.MapPost("/api/clientes", async (Cliente novoCliente, SistemaWmsComErpContext context) =>
 {
     try
     {
         await context.Clientes.AddAsync(novoCliente);
         await context.SaveChangesAsync();
-        return Results.Created($"/api/clientes{novoCliente.IdCliente}", novoCliente);
-
+        return Results.Created($"/api/clientes/{novoCliente.IdCliente}", novoCliente);
     }
     catch(Exception ex)
     {
         return Results.Problem($"Erro ao salvar no banco: {ex.Message}");
     }
 });
+
 app.Run();
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)

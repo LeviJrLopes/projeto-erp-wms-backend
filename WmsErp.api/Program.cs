@@ -45,6 +45,24 @@ app.MapGet("/weatherforecast", () =>
 })
 .WithName("GetWeatherForecast");
 
+
+
+//o codigo abaixo cria uma rota api para testar a insercao de dados na tabela
+
+app.MapPost("/api/clientes", async (Cliente novoCliente, SistemaWmsComErpContext context) =>
+{
+    try
+    {
+        await context.Clientes.AddAsync(novoCliente);
+        await context.SaveChangesAsync();
+        return Results.Created($"/api/clientes{novoCliente.IdCliente}", novoCliente);
+
+    }
+    catch(Exception ex)
+    {
+        return Results.Problem($"Erro ao salvar no banco: {ex.Message}");
+    }
+});
 app.Run();
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)

@@ -1,0 +1,1 @@
+o refresh token serve para o usuario não ter que digitar a senha e usuario a cada operação feita, ex: transferir uma peça de endereço, o sistema iria pedir senha e usuario em cada etapa do processo. senha a cada clique.
